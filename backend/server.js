@@ -19,8 +19,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-const cors = require("cors");
-
 // Body parser
 app.use(express.json());
 
