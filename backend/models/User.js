@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-
 const userSchema = new mongoose.Schema({
   name: { 
     type: String,
@@ -11,20 +10,28 @@ const userSchema = new mongoose.Schema({
     required: true, 
     unique: true 
   },
-  password: { 
+  googleId: { 
     type: String, 
-    required: true 
+    unique: true, 
+    sparse: true 
+  },
+  password: { 
+    type: String,
+    select:false,
+    required: function () {
+      return !this.googleId;
+    }
   },
   role: { 
     type: String, 
     enum: ['student', 'teacher'], 
     default: 'student' 
-   },
-  createdAt: {
-     type: Date, 
-     default: Date.now 
-    },
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
 });
 
-let User = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
 module.exports = User;
