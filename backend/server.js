@@ -19,6 +19,22 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+
+// Body parser
+app.use(express.json());
+
+// CORS configuration
+app.use(cors({
+    origin: "https://ps-31.vercel.app/", // Frontend URL
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true // cookies aur auth headers allow karne ke liye
+}));
+
+
 // Connect to MongoDB
 mongoose.connect(process.env.DB_URL)
   .then(() => console.log("Database connected"))
