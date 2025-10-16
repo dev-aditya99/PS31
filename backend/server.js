@@ -30,7 +30,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
-
 // Body parser
 app.use(express.json());
 
