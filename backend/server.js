@@ -1,6 +1,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const passport = require("./config/passport");
+const googleAuthRoutes = require("./routes/googleAuth");
+const session = require("express-session");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
@@ -18,18 +21,24 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || "secret",
+  resave: false,
+  saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 
-const express = require("express");
-const cors = require("cors");
+
 
 // Body parser
 app.use(express.json());
 
 // CORS configuration
 app.use(cors({
-    origin: "https://ps-31.vercel.app/", // Frontend URL
+    origin: process.env.FRONTEND_URL, // Frontend URL
     methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true // cookies aur auth headers allow karne ke liye
+    credentials: true 
 }));
 
 
@@ -40,10 +49,12 @@ mongoose.connect(process.env.DB_URL)
 
 // Routes
 app.use("/api/users", userRoutes);          // User registration/login/profile
-app.use("/api/quizzes", quizRoutes);        // Quiz CRUD (admin)
+app.use("/api/quizzes", quizRoutes);        // Quiz CRUD (teacher)
 // app.use("/api/responses", responseRoutes);  // User responses
 app.use("/api/adaptive", adaptiveRoutes);   // Adaptive quiz controller
 app.use("/api/career-prediction", careerRoutes); // AI career prediction
+app.use("/auth", googleAuthRoutes);
+
 
 // Root route
 app.get("/", (req, res) => {

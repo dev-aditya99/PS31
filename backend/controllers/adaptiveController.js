@@ -130,7 +130,6 @@ const getCareerRecommendation = wrapAsync(async (req, res) => {
   res.json(careerSuggestion);
 });
 
-// Export all functions
 module.exports = {
   getNextQuestion,
   submitAnswer,

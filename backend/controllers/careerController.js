@@ -1,7 +1,7 @@
 const Progress = require("../models/Progress");
 const { predictCareer } = require("../helper/aiHelper"); // Gemini AI helper function
 
-// Helper to wrap async functions
+
 const wrapAsync = (fn) => {
   return function (req, res, next) {
     Promise.resolve(fn(req, res, next)).catch(next);
@@ -48,7 +48,6 @@ const getPrediction = wrapAsync(async (req, res) => {
   res.json({ latestPrediction });
 });
 
-// Export all functions
 module.exports = {
   generatePrediction,
   getPrediction
