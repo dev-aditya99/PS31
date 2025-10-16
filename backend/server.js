@@ -27,7 +27,7 @@ mongoose.connect(process.env.DB_URL)
 // Routes
 app.use("/api/users", userRoutes);          // User registration/login/profile
 app.use("/api/quizzes", quizRoutes);        // Quiz CRUD (admin)
-app.use("/api/responses", responseRoutes);  // User responses
+// app.use("/api/responses", responseRoutes);  // User responses
 app.use("/api/adaptive", adaptiveRoutes);   // Adaptive quiz controller
 app.use("/api/career-prediction", careerRoutes); // AI career prediction
 

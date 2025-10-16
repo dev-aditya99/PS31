@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/authMiddleware");
-const teacher = require("../middleware/teacherMiddleware");
+const auth = require("../middlewares/auth");
+const teacher = require("../middlewares/teacher");
+
 const {
   addQuestion,
   updateQuestion,
