@@ -3,8 +3,19 @@ import { Link } from "react-router-dom";
 import { RiMenu2Line } from "react-icons/ri";
 
 const Header = () => {
+  const scroollHandler = () => {
+    if (window.scrollY > 50) {
+      document.querySelector("header").classList.add("shadow-lg");
+      document.querySelector("header").classList.add("border");
+    } else {
+      document.querySelector("header").classList.remove("shadow-lg");
+      document.querySelector("header").classList.remove("border");
+    }
+  };
+
+  window.addEventListener("scroll", scroollHandler);
   return (
-    <header className="bg-white border-b border-gray-200 flex justify-between items-center p-4 sticky top-0 z-50 shadow-sm">
+    <header className="mt-3 w-[98%] max-w-[1280px] m-auto bg-white/[0.85] backdrop-blur-md  border-gray-200 rounded-xl flex justify-between items-center p-4 sticky top-3 z-50 transition-shadow duration-200">
         <Link to="/" className="text-2xl font-bold text-gray-800">
           LearnX Pro
         </Link>
@@ -41,7 +52,7 @@ const Header = () => {
           </Link>
           <Link
             to="/register"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-all"
+            className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition-all"
           >
             Register
           </Link>
