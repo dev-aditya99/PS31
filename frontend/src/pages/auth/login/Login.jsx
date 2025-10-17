@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import useLogin from "../../../Hooks/useLogin";
 
 const Mail = (props) => (
   <svg
@@ -67,10 +68,20 @@ const GithubIcon = () => (
 );
 
 const Login = () => {
-  const loginHandler = (e) => {
+  const { loginUser, loading } = useLogin();
+
+  // functions
+  const loginHandler = async (e) => {
     e.preventDefault();
-    console.log(e.target.email);
-    console.log(e.target.password);
+
+    console.log(loading);
+
+    await loginUser({
+      email: e.target.email.value,
+      password: e.target.password.value,
+    });
+
+    console.log(loading);
   };
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-6">
@@ -134,8 +145,12 @@ const Login = () => {
                 Forgot Password?
               </a>
             </div>
-            <button className="w-full py-3 mt-4 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg">
-              Login
+            <button className="w-full py-3 mt-4 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center">
+              {loading ? (
+                <div className="w-5 h-5 border-4 border-dashed border-white rounded-full animate-spin"></div>
+              ) : (
+                "Login"
+              )}
             </button>
           </form>
 

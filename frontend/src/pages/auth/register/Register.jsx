@@ -84,6 +84,13 @@ const GithubIcon = () => (
 );
 
 const Register = () => {
+  // handlers
+  const googleAuthHandler = () => {
+    window.open(`${import.meta.env.VITE_BACKEND_URL}/auth/google`, "_self");
+  };
+  const githubAuthHandler = () => {
+    window.open(`${import.meta.env.VITE_BACKEND_URL}/auth/github`, "_self");
+  };
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-6">
       <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl grid md:grid-cols-2 overflow-hidden">
@@ -98,7 +105,10 @@ const Register = () => {
 
           {/* other methods of sign up  */}
           <div className="space-y-4">
-            <button className="w-full flex items-center justify-center py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium text-gray-700">
+            <button
+              onClick={googleAuthHandler}
+              className="w-full flex items-center justify-center py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium text-gray-700"
+            >
               <GoogleIcon />
               Continue with Google
             </button>

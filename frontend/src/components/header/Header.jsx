@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { RiMenu2Line } from "react-icons/ri";
+import { useAuthContext } from "../../context/AuthContext";
+import { useMainContext } from "../../context/MainContext";
 
 const MenuIcon = (props) => (
   <svg
@@ -39,13 +41,20 @@ const XIcon = (props) => (
 );
 
 const Header = () => {
+  // contexts
+  const { authUser } = useAuthContext();
+  const { currentPath, setCurrentPath } = useMainContext();
+
+  // states
   const [isOpen, setIsOpen] = useState(false);
   const closeMenu = () => setIsOpen(false);
 
+  // useEffects
   useEffect(() => {
     document.body.classList.toggle("overflow-hidden", isOpen);
   }, [isOpen]);
 
+  // functions
   const scroollHandler = () => {
     if (window.scrollY > 50) {
       document.querySelector("header").classList.add("shadow-lg");
@@ -59,8 +68,15 @@ const Header = () => {
   };
 
   window.addEventListener("scroll", scroollHandler);
+
+  const logoutHandler = () => {
+    localStorage.removeItem("user");
+    setCurrentPath("/auth/login");
+    window.location.href = "/auth/login";
+  };
+
   return (
-    <header className="md:mt-3 mt-2 w-[98%] max-w-[1280px] m-auto bg-white/[0.85] backdrop-blur-md  border rounded-xl flex justify-between items-center p-4 sticky md:top-3 top-2 z-50 transition-shadow duration-200">
+    <header className="md:mt-3 mt-2 w-[98%] max-w-[1280px] m-auto bg-[#f9fafb]/[0.85] backdrop-blur-md  border border-transparent rounded-xl flex justify-between items-center p-4 sticky md:top-3 top-2 z-50 transition-shadow duration-200">
       <Link to="/" className="text-2xl font-bold text-gray-800">
         LearnX Pro
       </Link>
@@ -68,41 +84,53 @@ const Header = () => {
       <nav className="flex justify-between items-center">
         {/* Navbar for large devices */}
         <div className="hidden md:flex items-center space-x-8 text-gray-600">
-          <Link
-            to="/"
-            className="text-gray-600 hover:text-blue-600 transition-colors"
-          >
-            Home
-          </Link>
-          <Link
+          {!authUser && (
+            <NavLink
+              to="/"
+              className={`text-gray-600 hover:text-blue-600 transition-colors`}
+            >
+              Home
+            </NavLink>
+          )}
+
+          <NavLink
             to="/student/dashboard"
-            className="text-gray-600 hover:text-blue-600 transition-colors"
+            className={`text-gray-600 hover:text-blue-600 transition-colors`}
           >
             Dashboard
-          </Link>
-          <Link
+          </NavLink>
+          <NavLink
             to="/student/career"
-            className="text-gray-600 hover:text-blue-600 transition-colors"
+            className={`text-gray-600 hover:text-blue-600 transition-colors`}
           >
             Careers
-          </Link>
+          </NavLink>
         </div>
 
-        <div className="hidden md:block ml-4 border-l border-gray-500">
-          <Link
-            to="/auth/login"
+        {/* login and register links  */}
+        {!authUser ? (
+          <div className="hidden md:block ml-4 border-l border-gray-500">
+            <Link
+              to="/auth/login"
+              className="px-4 py-2 text-gray-700 hover:text-blue-600"
+            >
+              Login
+            </Link>
+            <Link
+              to="/auth/register"
+              className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition-all"
+            >
+              Register
+            </Link>
+          </div>
+        ) : (
+          <button
             className="px-4 py-2 text-gray-700 hover:text-blue-600"
+            onClick={logoutHandler}
           >
-            Login
-          </Link>
-          <Link
-            to="/auth/register"
-            className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition-all"
-          >
-            Register
-          </Link>
-        </div>
-
+            Logout
+          </button>
+        )}
         {/* Navbar for small devices */}
         <div className="md:hidden flex items-center">
           <button
@@ -124,44 +152,48 @@ const Header = () => {
           } overflow-hidden`}
         >
           <div className="px-4 pt-2 pb-3 space-y-2">
-            <Link
+            <NavLink
               to="/"
               onClick={closeMenu}
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-black hover:bg-gray-100"
             >
               Home
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               to="/student/dashboard"
               onClick={closeMenu}
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-black hover:bg-gray-100"
             >
               Dashboard
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               to="/student/career"
               onClick={closeMenu}
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-black hover:bg-gray-100"
             >
               Careers
-            </Link>
+            </NavLink>
           </div>
-          <div className="px-4 py-3 border-t border-gray-200 space-y-2">
-            <Link
-              to="/auth/register"
-              onClick={closeMenu}
-              className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-all"
-            >
-              Register
-            </Link>
-            <Link
-              to="/auth/login"
-              onClick={closeMenu}
-              className="block w-full text-center mt-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
-            >
-              Login
-            </Link>
-          </div>
+
+          {/* login and register links */}
+          {!authUser && (
+            <div className="px-4 py-3 border-t border-gray-200 space-y-2">
+              <Link
+                to="/auth/register"
+                onClick={closeMenu}
+                className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-all"
+              >
+                Register
+              </Link>
+              <Link
+                to="/auth/login"
+                onClick={closeMenu}
+                className="block w-full text-center mt-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                Login
+              </Link>
+            </div>
+          )}
         </div>
       </nav>
     </header>
