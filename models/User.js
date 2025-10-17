@@ -1,36 +1,35 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  name: { 
+  name: {
     type: String,
-    required: true 
+    required: true
   },
-  email: { 
-    type: String, 
-    required: true, 
-    unique: true 
+  email: {
+    type: String,
+    required: true,
+    unique: true
   },
-  googleId: { 
-    type: String, 
-    unique: true, 
-    sparse: true 
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
   },
   category: { type: String, default: "general" },
-  password: { 
+  password: {
     type: String,
-    select:false,
     required: function () {
       return !this.googleId;
     }
   },
-  role: { 
-    type: String, 
-    enum: ['student', 'teacher'], 
-    default: 'student' 
+  role: {
+    type: String,
+    enum: ['student', 'teacher'],
+    default: 'student'
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 

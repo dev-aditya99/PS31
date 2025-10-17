@@ -17,7 +17,6 @@ const careerRoutes = require("./routes/careerPrediction");
 const app = express();
 
 // Middleware
-app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -36,10 +35,11 @@ app.use(express.json());
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.FRONTEND_URL, // Frontend URL
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true 
+  origin: process.env.FRONTEND_URL, // Frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
 }));
+
 
 
 // Connect to MongoDB

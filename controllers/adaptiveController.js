@@ -4,23 +4,23 @@ const User = require("../models/User");
 const Quiz = require("../models/Quiz");
 const { predictNextQuestion, predictCareer } = require("../helper/aiHelper");
 
-// Helper to wrap async functions
 const wrapAsync = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-// Get next adaptive question
+// Get adaptive next 5 questions
 const getNextQuestion = wrapAsync(async (req, res) => {
   const { userId } = req.params;
   const { topic } = req.body;
+  console.log("topic", topic);
+
+  const batchSize = 5;
 
   const user = await User.findById(userId);
   if (!user) return res.status(404).json({ message: "User not found" });
 
   let progress = await Progress.findOne({ userId });
-  if (!progress) {
-    progress = await Progress.create({ userId, topics: {} });
-  }
+  if (!progress) progress = await Progress.create({ userId, topics: {} });
 
   if (!progress.topics[topic]) {
     progress.topics[topic] = {
@@ -31,55 +31,84 @@ const getNextQuestion = wrapAsync(async (req, res) => {
     };
   }
 
+  const served = progress.topics[topic].servedCount;
   let questions = [];
 
-  // First 5 questions → check DB, generate if missing
-  if (progress.topics[topic].servedCount < 5) {
-    questions = await Quiz.find({ topic }).limit(5 - progress.topics[topic].servedCount);
-
-    if (questions.length < 5) {
-      const generateCount = 5 - questions.length;
-      for (let i = 0; i < generateCount; i++) {
-        const aiQuestion = await predictNextQuestion({ currentDifficulty: 1 }, []);
-        const savedQ = await Quiz.create({
-          topic,
-          question: aiQuestion.question,
-          options: aiQuestion.options,
-          correctAnswer: aiQuestion.correctAnswer,
-          difficulty: aiQuestion.difficulty,
-          skillTag: aiQuestion.skillTag,
-          generatedByAI: true,
-        });
-        questions.push(savedQ);
-      }
-    }
-  } else {
-    // Next questions → based on user progress + answered
-    const answeredQuestions = await Response.find({ userId, topic }).select("questionId");
-    const answeredIds = answeredQuestions.map((q) => q.questionId.toString());
-
-    const topicProgress = { currentDifficulty: progress.topics[topic].currentDifficulty || 1 };
-    const aiQuestion = await predictNextQuestion(topicProgress, answeredIds);
-
-    const savedQ = await Quiz.create({
+  // If first time → generate first batch from AI
+  if (served === 0) {
+    const aiQuestions = await predictNextQuestion(
+      { currentDifficulty: 1 },
+      [],
       topic,
-      question: aiQuestion.question,
-      options: aiQuestion.options,
-      correctAnswer: aiQuestion.correctAnswer,
-      difficulty: aiQuestion.difficulty,
-      skillTag: aiQuestion.skillTag,
-      generatedByAI: true,
-    });
-    questions.push(savedQ);
+      batchSize
+    );
+
+    questions = aiQuestions;
+
+    for (const aiQ of aiQuestions) {
+      const saved = await Quiz.create({
+        topic,
+        question: aiQ.question,
+        options: aiQ.options,
+        correctAnswer: aiQ.correctAnswer,
+        difficulty: aiQ.difficulty,
+        skillTag: aiQ.skillTag,
+        generatedByAI: true,
+      });
+    }
+  }
+  // fter each 5 → adapt based on last 5 answers
+  else {
+    const recentResponses = await Response.find({ userId, topic })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+
+    if (!recentResponses.length)
+      return res.status(400).json({ message: "No recent responses found" });
+
+    const accuracy = recentResponses.filter(r => r.correct).length / recentResponses.length;
+    const topicProgress = progress.topics[topic];
+
+    topicProgress.currentDifficulty =
+      accuracy >= 0.8
+        ? Math.min(topicProgress.currentDifficulty + 1, 5)
+        : accuracy < 0.5
+          ? Math.max(topicProgress.currentDifficulty - 1, 1)
+          : topicProgress.currentDifficulty;
+
+    const aiQuestions = await predictNextQuestion(
+      topicProgress,
+      recentResponses,
+      topic,
+      batchSize
+    );
+
+    for (const aiQ of aiQuestions) {
+      const saved = await Quiz.create({
+        topic,
+        question: aiQ.question,
+        options: aiQ.options,
+        correctAnswer: aiQ.correctAnswer,
+        difficulty: aiQ.difficulty,
+        skillTag: aiQ.skillTag,
+        generatedByAI: true,
+      });
+      questions.push(saved);
+    }
   }
 
   progress.topics[topic].servedCount += questions.length;
   await progress.save();
 
-  res.json({ questions });
+  res.json({
+    message: `Next ${batchSize} adaptive questions generated.`,
+    currentDifficulty: progress.topics[topic].currentDifficulty,
+    questions,
+  });
 });
 
-// Submit answer
+// Submit answer and update progress
 const submitAnswer = wrapAsync(async (req, res) => {
   const { userId, topic, questionId, selectedOption } = req.body;
 
@@ -87,7 +116,8 @@ const submitAnswer = wrapAsync(async (req, res) => {
   if (!question) return res.status(404).json({ message: "Question not found" });
 
   const alreadyAnswered = await Response.findOne({ userId, questionId });
-  if (alreadyAnswered) return res.status(400).json({ message: "Already answered" });
+  if (alreadyAnswered)
+    return res.status(400).json({ message: "Already answered" });
 
   const correct = question.correctAnswer === selectedOption;
 
@@ -101,84 +131,68 @@ const submitAnswer = wrapAsync(async (req, res) => {
     correctAnswer: question.correctAnswer,
     correct,
     skillTag: question.skillTag || "general",
+    difficulty: question.difficulty,
   });
 
-  // Update Progress
   let progress = await Progress.findOne({ userId });
-  if (!progress.topics[topic]) {
-    progress.topics[topic] = { servedCount: 0, skillScores: {}, predictedCareers: [], currentDifficulty: 1 };
-  }
-
-  if (!progress.topics[topic].skillScores) progress.topics[topic].skillScores = {};
+  const topicProgress = progress.topics[topic];
   const skillTag = question.skillTag || "general";
 
-  if (!progress.topics[topic].skillScores[skillTag])
-    progress.topics[topic].skillScores[skillTag] = { correct: 0, total: 0 };
+  if (!topicProgress.skillScores[skillTag])
+    topicProgress.skillScores[skillTag] = { correct: 0, total: 0 };
 
-  progress.topics[topic].skillScores[skillTag].total += 1;
-  if (correct) progress.topics[topic].skillScores[skillTag].correct += 1;
-
-  // Update difficulty based on last 10 responses
-  const recentResponses = await Response.find({ userId, topic }).sort({ createdAt: -1 }).limit(10);
-  const accuracy = recentResponses.filter((r) => r.correct).length / recentResponses.length;
-  progress.topics[topic].currentDifficulty =
-    accuracy >= 0.8
-      ? Math.min((progress.topics[topic].currentDifficulty || 1) + 1, 5)
-      : accuracy < 0.5
-      ? Math.max((progress.topics[topic].currentDifficulty || 1) - 1, 1)
-      : progress.topics[topic].currentDifficulty || 1;
-
-  // Update career prediction
-  const careerSuggestion = await predictCareer(progress.topics[topic].skillScores);
-  if (careerSuggestion) {
-    if (!progress.topics[topic].predictedCareers) progress.topics[topic].predictedCareers = [];
-    progress.topics[topic].predictedCareers.push({
-      name: careerSuggestion.name,
-      confidence: careerSuggestion.confidence,
-      predictedAt: new Date(),
-    });
-  }
+  topicProgress.skillScores[skillTag].total += 1;
+  if (correct) topicProgress.skillScores[skillTag].correct += 1;
 
   await progress.save();
 
-  res.json({
-    message: "Answer recorded",
-    correct,
-    currentDifficulty: progress.topics[topic].currentDifficulty,
-    careerSuggestion,
-  });
+  res.json({ message: "Answer recorded", correct });
 });
 
-// Get user progress per topic
+// User progress
 const getUserProgress = wrapAsync(async (req, res) => {
   const { userId, topic } = req.params;
   const progress = await Progress.findOne({ userId });
-  if (!progress || !progress.topics[topic]) return res.status(404).json({ message: "Progress not found" });
+  if (!progress || !progress.topics[topic])
+    return res.status(404).json({ message: "Progress not found" });
   res.json(progress.topics[topic]);
 });
 
-// Get AI career recommendation for user
-const getCareerRecommendation = wrapAsync(async (req, res) => {
-  const { userId } = req.params;
+// AI-based Feedback Report
+const generateFeedbackReport = wrapAsync(async (req, res) => {
+  const { userId, topic } = req.params;
+
   const progress = await Progress.findOne({ userId });
-  if (!progress) return res.status(404).json({ message: "User progress not found" });
+  if (!progress || !progress.topics[topic])
+    return res.status(404).json({ message: "Progress not found" });
 
-  const skillScores = {};
-  for (const [topic, data] of progress.topics.entries()) {
-    for (const [skill, score] of Object.entries(data.skillScores)) {
-      if (!skillScores[skill]) skillScores[skill] = { correct: 0, total: 0 };
-      skillScores[skill].correct += score.correct;
-      skillScores[skill].total += score.total;
-    }
-  }
+  const responses = await Response.find({ userId, topic }).populate("questionId");
+  if (responses.length < 20)
+    return res.status(400).json({ message: "At least 20 responses needed for feedback." });
 
-  const careerSuggestion = await predictCareer(skillScores);
-  res.json({ careerSuggestion });
+  const skillScores = progress.topics[topic].skillScores;
+  const skillReport = Object.entries(skillScores).map(([skill, data]) => ({
+    skill,
+    accuracy: ((data.correct / data.total) * 100).toFixed(2) + "%"
+  }));
+
+  const aiFeedback = await predictCareer(skillScores);
+
+  const report = {
+    totalQuestions: responses.length,
+    correctAnswers: responses.filter(r => r.correct).length,
+    incorrectAnswers: responses.filter(r => !r.correct).length,
+    skillReport,
+    predictedCareers: aiFeedback.careerPaths || [],
+    generatedAt: new Date(),
+  };
+
+  res.json(report);
 });
 
 module.exports = {
   getNextQuestion,
   submitAnswer,
   getUserProgress,
-  getCareerRecommendation,
+  generateFeedbackReport,
 };

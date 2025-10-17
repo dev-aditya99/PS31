@@ -25,24 +25,23 @@ const registerUser = wrapAsync(async (req, res) => {
 
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
     maxAge: 24 * 60 * 60 * 1000, // 1 day
   });
 
   res.status(201).json({
     message: "User registered & logged in successfully",
-    user,
+    user: { ...user, password: undefined },
   });
 });
 
 // Login
 const loginUser = wrapAsync(async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email }).select("+password");
+  let user = await User.findOne({ email });
   if (!user) return res.status(400).json({ message: "User not found" });
 
-  const isMatch = await bcrypt.compare(password, user.password);
+  const isMatch = await bcrypt.compare(password, user?.password);
+  user = await User.findOne({ email }).select("-password");
   if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -50,12 +49,12 @@ const loginUser = wrapAsync(async (req, res) => {
   res.cookie("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: 24 * 60 * 60 * 1000,
   });
 
   res.json({
-    message: "Login successful",
+    msg: "User Login Successfully",
     user,
   });
 });

@@ -1,19 +1,20 @@
 const express = require("express");
 const router = express.Router();
-const { getNextQuestion, submitAnswer, getUserProgress, getCareerRecommendation } = require("../controllers/adaptiveController");
-const auth = require("../middlewares/auth"); 
+const { getNextQuestion, submitAnswer, getUserProgress, generateFeedbackReport } = require("../controllers/adaptiveController");
+const auth = require("../middlewares/auth");
 
 // // Get next AI-based question
-router.get("/next/:userId", auth,getNextQuestion);
+router.post("/next/:userId", auth, getNextQuestion);
 
 // // Submit answer and update progress
-router.post("/submit",auth, submitAnswer);
+router.post("/submit", auth, submitAnswer);
 
 // // Get user progress
-router.get("/progress/:userId",auth, getUserProgress);
+router.get("/progress/:userId", auth, getUserProgress);
 
-// // Get AI career recommendation
-router.get("/career/:userId",auth,  getCareerRecommendation);
+// Get AI feedback report after quiz completion
+router.get("/feedback/:userId/:topic", auth, generateFeedbackReport);
+
 
 module.exports = router;
 
