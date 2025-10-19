@@ -1,9 +1,14 @@
-*{
+* {
     padding: 0;
     margin: 0;
     box-sizing: border-box;
 }
 
-body{
-    background: #fff;
+body {
+    background: #f9fafb;
+}
+
+.active {
+    color: #555 !important;
+    font-weight: 600;
 }

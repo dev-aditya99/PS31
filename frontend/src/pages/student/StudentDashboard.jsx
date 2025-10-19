@@ -1,4 +1,4 @@
-import React from "react";
+import React, { use, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const ClipboardList = (props) => (
@@ -60,11 +60,20 @@ const BarChart = (props) => (
 );
 
 const StudentDashboard = () => {
+  const [userDetails, setUserDetails] = useState(null);
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    setUserDetails(user);
+    // if (!user || user.role !== "student") {
+    //   window.location.href = "/login"; // Redirect to login if not authenticated or not a student
+    // }
+  }, []);
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="container mx-auto px-6 py-12">
         <h1 className="text-4xl font-bold text-gray-800 mb-2">
-          Welcome, Student!
+          Welcome, {userDetails?.name}!
         </h1>
         <p className="text-lg text-gray-600 mb-10">
           Here's your personalized learning dashboard.
@@ -116,7 +125,7 @@ const StudentDashboard = () => {
                 skills.
               </p>
               <Link
-                to="/student/quiz"
+                to="/student/learning-path"
                 className="mt-auto block text-center font-bold text-white bg-blue-600 rounded-lg py-2.5 hover:bg-blue-700 transition-all"
               >
                 Start Quiz
